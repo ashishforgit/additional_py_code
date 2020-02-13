@@ -3,7 +3,7 @@
 HDS-340 - Frequency of un/available CNR Rates at all Properties
 
 ### Execution benchmarks
-~10 minutes for 27th May 2019 @2500 partitions, 10 executors, 2 cores
+
 
 """
 
