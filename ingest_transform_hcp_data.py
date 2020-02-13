@@ -1,3 +1,4 @@
+
 """
 nohup spark2-submit \
 --master yarn \
@@ -10,7 +11,6 @@ nohup spark2-submit \
 ingest_transform_hcp_data.py \
 --e Test-E2E \
 &
-
 """
 
 from pyspark.sql import SparkSession
@@ -251,8 +251,8 @@ def transform_hcp_trans_data():
         ,PNR_Type
         ,HOTELHUB_MODE
         ,MARKET
-        ,CWT_CLIENT_TOP_NAME
-        ,CWT_SUB_UNIT_CLIENT_NAME
+        ,CLIENT_CLIENT_TOP_NAME
+        ,CLIENT_SUB_UNIT_CLIENT_NAME
         ,CUSTOMER_AGENCY_NAME
         ,HOTEL_NAME
         ,CITY
@@ -310,7 +310,7 @@ def transform_hcp_trans_data():
         end as cancel_datetime
         ,ABANDON_BY_USER
         ,OBT_PNR
-        ,CWT_BOOKING_CHANNEL
+        ,CLIENT_BOOKING_CHANNEL
         ,RATE_ACCESS_CODE_BOOKED
         ,COMMISSION_TYPE
         ,COMMISSION_CURRENCY
@@ -355,9 +355,9 @@ def transform_hcp_trans_data():
         ,cast(CHEAP_CLIENT_NEG_RATE as int) as CHEAP_CLIENT_NEG_RATE
         ,CHEAP_CLIENT_NEG_RATE_CURRCODE
         ,CHEAP_CLIENT_NEG_RATE_DESCRIPTION
-        ,cast(CHEAP_CWT_OR_CWV_RATE as int) as CHEAP_CWT_OR_CWV_RATE
-        ,CHEAP_CWT_OR_CWV_NEG_RATE_CURRCODE
-        ,CHEAP_CWT_OR_CWV_RATE_DESCRIPTION
+        ,cast(CHEAP_CLIENT_OR_CWV_RATE as int) as CHEAP_CLIENT_OR_CWV_RATE
+        ,CHEAP_CLIENT_OR_CWV_NEG_RATE_CURRCODE
+        ,CHEAP_CLIENT_OR_CWV_RATE_DESCRIPTION
         ,cast(CHEAP_GDS_PUBLISHED_RATE as int) as CHEAP_GDS_PUBLISHED_RATE
         ,CHEAP_GDS_NEG_RATE_CURRCODE
         ,CHEAP_GDS_PUBLISHED_RATE_DESCRIPTION
@@ -410,8 +410,8 @@ def transform_hcp_trans_data():
         ,case
          when content_source in('BOOKING.COM','EAN HOTEL COLLECT', 'BOOKING.COM CASHONLY','DESIYA HOTELS','LOCAL AGGREGATOR') then 'AGG RATE'
          when content_source ='PREMIER INN - PI' then 'PUB - DIRECT CONNECT'
-         when (rate_bucket like '%CWT%' or rate_bucket like '%ROOMIT%') and rate_access_code_booked='CWV' then 'ROOMIT (CWV)'
-         when (rate_bucket like '%CWT%' or rate_bucket like '%ROOMIT%') and ((instr(lower(rate_description),'client value')!=0) or (instr(lower(rate_description),'cwv')!=0)) then 'ROOMIT (CWV)'
+         when (rate_bucket like '%CLIENT%' or rate_bucket like '%ROOMIT%') and rate_access_code_booked='CWV' then 'ROOMIT (CWV)'
+         when (rate_bucket like '%CLIENT%' or rate_bucket like '%ROOMIT%') and ((instr(lower(rate_description),'client value')!=0) or (instr(lower(rate_description),'cwv')!=0)) then 'ROOMIT (CWV)'
          when (rate_access_code_booked='CWV' or rate_access_code_booked is null or rate_access_code_booked='') and 
               ((instr(lower(rate_description),'client value')!=0) or (instr(lower(rate_description),'cwv')!=0)) then 'ROOMIT (CWV)'
          when (instr(lower(rate_description),'client')!=0 and instr(lower(rate_description),'value')!=0)or 
@@ -419,12 +419,12 @@ def transform_hcp_trans_data():
               instr(lower(rate_description),'roomit')!=0 or
               instr(lower(rate_description),'room it')!=0 then 'ROOMIT (CWV)'
          when rate_description not like'CWV%' and instr(lower(rate_description),'crs')!=0 then 'CLIENT'
-         when (rate_bucket like '%CWT%' or rate_bucket like '%ROOMIT%') and rate_access_code_booked ='CWT' then 'ROOMIT (CWT)'
-         when (rate_access_code_booked='CWT' or rate_access_code_booked is null or rate_access_code_booked='') and 
-              ((instr(lower(rate_description),'client')!=0) or (instr(lower(rate_description),'carlson')!=0)) then 'ROOMIT (CWT)'
+         when (rate_bucket like '%CLIENT%' or rate_bucket like '%ROOMIT%') and rate_access_code_booked ='CLIENT' then 'ROOMIT (CLIENT)'
+         when (rate_access_code_booked='CLIENT' or rate_access_code_booked is null or rate_access_code_booked='') and 
+              ((instr(lower(rate_description),'client')!=0) or (instr(lower(rate_description),'carlson')!=0)) then 'ROOMIT (CLIENT)'
          when ((instr(lower(rate_description),'client')!=0) and (instr(lower(rate_description),'value')=0)) or 
               ((instr(lower(rate_description),'carlson')!=0) and (instr(lower(rate_description),'value')=0)) or
-              instr(lower(rate_description), 'consortia')>0 then 'ROOMIT (CWT)'
+              instr(lower(rate_description), 'consortia')>0 then 'ROOMIT (CLIENT)'
          when rate_bucket like '%PUBLIC%' and instr(lower(rate_description), 'worldwide')>0 then 'PUB'
          when instr(lower(rate_description), 'room rac')>0 or
               instr(lower(rate_description), 'room pro')>0 or
@@ -496,7 +496,7 @@ def transform_hcp_trans_data():
         .withColumn('concat_base_OBT_PNR', F.concat('date_in', 'date_out', 'OBT_PNR')) \
         .withColumn('concat_base_PNR', F.concat('date_in', 'date_out', 'PNR')) \
         .withColumn('full_mk',
-                    F.when(F.col('CWT_BOOKING_CHANNEL').isin(channels),
+                    F.when(F.col('CLIENT_BOOKING_CHANNEL').isin(channels),
                            F.regexp_replace(F.concat('concat_base_OBT_PNR',
                                                      'HARP_PROPERTY_ID_NO',
                                                      'TRAVELLER_PORTRAIT_GUID'),
@@ -506,17 +506,17 @@ def transform_hcp_trans_data():
                                                          'TRAVELLER_PORTRAIT_GUID'),
                                                 regexp_pattern, ''))) \
         .withColumn('prop_mk',
-                    F.when(F.col('CWT_BOOKING_CHANNEL').isin(channels),
+                    F.when(F.col('CLIENT_BOOKING_CHANNEL').isin(channels),
                            F.regexp_replace(F.concat('concat_base_OBT_PNR', 'HARP_PROPERTY_ID_NO'),
                                             regexp_pattern, ''))
                     .otherwise(F.regexp_replace(F.concat('concat_base_PNR', 'HARP_PROPERTY_ID_NO'),
                                                 regexp_pattern, ''))) \
         .withColumn('pnr_mk',
-                    F.when(F.col('CWT_BOOKING_CHANNEL').isin(channels),
+                    F.when(F.col('CLIENT_BOOKING_CHANNEL').isin(channels),
                            F.regexp_replace('concat_base_OBT_PNR', regexp_pattern, ''))
                     .otherwise(F.regexp_replace('concat_base_PNR', regexp_pattern, ''))) \
         .withColumn('dedupe_key',
-                    F.when(F.col('CWT_BOOKING_CHANNEL').isin(channels),
+                    F.when(F.col('CLIENT_BOOKING_CHANNEL').isin(channels),
                            F.sha2(F.regexp_replace('concat_base_OBT_PNR', regexp_pattern, ''), 256))
                     .otherwise(F.sha2(F.regexp_replace('concat_base_PNR', regexp_pattern, ''), 256))) \
         .withColumn('rk', F.rank().over(Window.partitionBy('dedupe_key').orderBy(F.col('lastmodified_datetime').desc()))) \
