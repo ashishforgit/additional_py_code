@@ -152,8 +152,8 @@ def analyse(spark, conf_dict):
         .withColumn('expl', F.explode('ratePlan_tpaExtensions_labels_label')) \
         .withColumn('label_length', F.size(F.col('ratePlan_tpaExtensions_labels_label'))) \
         .filter('(expl.id is null AND label_length = 1) '
-                'OR (expl.id = "CWT_RATE_SORTED_RANK" AND expl.type = "CWT_RATE_SORTED_RANK") '
-                'OR (expl.id = "CWT_RATE_TYPE" AND expl.type = "CWT_RATE_TYPE") '
+                'OR (expl.id = "CLIENT_RATE_SORTED_RANK" AND expl.type = "CLIENT_RATE_SORTED_RANK") '
+                'OR (expl.id = "CLIENT_RATE_TYPE" AND expl.type = "CLIENT_RATE_TYPE") '
                 ) \
         .withColumn('label_id', F.col('expl.id')) \
         .withColumn('label_value', F.col('expl.value')) \
@@ -166,21 +166,21 @@ def analyse(spark, conf_dict):
                  'new_rate_bucket',
                  'ratePlan_tpaExtensions_labels_label',
                  ) \
-        .pivot('label_id', ['CWT_RATE_TYPE', 'CWT_RATE_SORTED_RANK']) \
+        .pivot('label_id', ['CLIENT_RATE_TYPE', 'CLIENT_RATE_SORTED_RANK']) \
         .agg(F.first(F.col('label_value'))) \
         .checkpoint()
 
     # Aggregations
     df_stage_3 = df_stage_2 \
         .withColumn('top3_rate_flag',
-                    F.when(F.col('CWT_RATE_SORTED_RANK').cast('float').between(1, 3), 1).otherwise(0)) \
+                    F.when(F.col('CLIENT_RATE_SORTED_RANK').cast('float').between(1, 3), 1).otherwise(0)) \
         .groupBy('year',
                  'month',
                  'day',
                  'res_sessionId',
                  'hotel_id',
                  'new_rate_bucket',
-                 'CWT_RATE_TYPE',
+                 'CLIENT_RATE_TYPE',
                  'top3_rate_flag',
                  ) \
         .agg(F.count(F.lit(1)).alias('responses'))
@@ -200,7 +200,7 @@ def summarise(spark, conf_dict):
     groupby_fields = ['year',
                       'month',
                       'day',
-                      'CWT_RATE_TYPE',
+                      'CLIENT_RATE_TYPE',
                       'top3_rate_flag',
                       ]
 
